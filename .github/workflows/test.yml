@@ -1,0 +1,40 @@
+name: smoke-test
+
+# macOS / Windows / Linux でクロスプラットフォームの自己テストを回す。
+# 実送信(LINE)は認証が要るので CI では行わない。import・画像処理・月間クォータ(OS別ロック)・
+# 静的サーバーの Range 配信・GIF→mp4 変換 までを検証する（Mac環境でも Windows 動作を確認できる）。
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install ffmpeg (for video conversion tests)
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            brew install ffmpeg
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            choco install ffmpeg -y --no-progress
+          else
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Run smoke test
+        run: uv run python smoke_test.py

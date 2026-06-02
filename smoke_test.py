@@ -3,9 +3,16 @@ import asyncio
 import json
 import os
 import pathlib
+import sys
 import tempfile
 import urllib.error
 import urllib.request
+
+try:  # Windows 等で stdout が非UTF-8だと日本語/記号の print で落ちるため
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 os.environ.setdefault("LINE_PUBLIC_BASE_URL", "https://example.ts.net")
 

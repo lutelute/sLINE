@@ -31,7 +31,7 @@ Claude Code が生成したテキスト・画像・動画を、**自分の LINE 
 
 ## 必要なもの（前提）
 
-- **macOS**（配信サーバーの常駐に `launchd`、スリープ抑制に `caffeinate` を使う）
+- **OS: macOS / Windows / Linux**（macOS=launchd+caffeinate、Windows=タスクスケジューラ+SetThreadExecutionState、Linux=コアのみ・常駐は各自。詳細は末尾「[対応プラットフォーム](#対応プラットフォーム)」）
 - **[uv](https://docs.astral.sh/uv/)**（Python 実行・依存管理）
 - **[Tailscale](https://tailscale.com/)**（画像・動画の公開 URL 化に **Funnel** を使う。テキストのみなら不要）
 - **ffmpeg**（動画 `send_video` を使う場合のみ。`brew install ffmpeg`）
@@ -44,12 +44,19 @@ Claude Code が生成したテキスト・画像・動画を、**自分の LINE 
 
 ## クイックスタート
 
+**macOS / Linux:**
 ```bash
 git clone <this-repo> sLINE && cd sLINE
-./setup.sh          # 依存チェック → uv sync → .env 用意 → 配信サーバーを launchd 登録
+./setup.sh          # 依存チェック → uv sync → .env 用意 → 配信サーバーを常駐登録
 ```
 
-`setup.sh` は冪等（何度実行しても安全）。実行後、表示される案内に従って LINE 側設定（下記セットアップ §1〜）と `.env` 記入を済ませれば完了。
+**Windows (PowerShell):**
+```powershell
+git clone <this-repo> sLINE; cd sLINE
+./setup.ps1         # 同上（配信サーバーはタスクスケジューラに登録）
+```
+
+`setup.sh` / `setup.ps1` は冪等（何度実行しても安全）。実行後、表示される案内に従って LINE 側設定（下記セットアップ §1〜）と `.env` 記入を済ませれば完了。
 
 ---
 
@@ -251,6 +258,18 @@ claude -p "…処理して結果を send_image で送って" \
 | 動画は受信できるが再生で固まる | mp4 の profile/解像度/音声トラック非互換。本ツールは baseline + 16の倍数 + 無音音声で生成し対応済み（古い形式で送ったものは再送）。 |
 | 動画がスマホで再生できない（PCはOK／音だけ・真っ黒・くるくる） | スマホは**再生時に直接 mp4 を取得**するため、その瞬間に Mac が寝ていると失敗する。送ったら**すぐ開く**、または Mac を**電源接続＋ふた開け**でスリープ防止。`send_stats` で動画の取得（fetch）有無を確認できる。 |
 | 動画(mp4)だけ届かない/サムネのみ | 配信側 launchd が旧コードで `.mp4` を404にしている可能性。`lsof -nP -i :8910` で残骸プロセスを確認し kill → `launchctl kickstart -k gui/$(id -u)/com.line-bridge.static`。 |
+
+---
+
+## 対応プラットフォーム
+
+| OS | 状態 | セットアップ | 配信常駐 | スリープ抑制 |
+|---|---|---|---|---|
+| macOS | ✅ 実運用確認済み | `setup.sh` | launchd | caffeinate |
+| Windows | 🧪 CI検証（実送信は要確認） | `setup.ps1` | タスクスケジューラ | SetThreadExecutionState |
+| Linux | 🧪 コア動作（CI） | `setup.sh`（常駐は対象外） | systemd 等で各自 | なし |
+
+クロスプラットフォームの自己テスト（`smoke_test.py`）は **GitHub Actions** で macOS / Windows / Linux すべてで自動実行される（import・画像処理・月間クォータ・Range配信・GIF→mp4変換を検証）。実際の LINE 送信は認証が要るため CI では行わないので、各環境で `.env` 設定後に確認すること。
 
 ---
 
