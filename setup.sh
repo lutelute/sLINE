@@ -32,7 +32,7 @@ fi
 
 # 4) launchd 配信サーバー（127.0.0.1:PORT を常駐させ、Funnel の宛先を生かし続ける）
 UV_BIN="$(command -v uv)"
-PLIST_SRC="$PROJECT_DIR/com.line-bridge.static.plist"
+PLIST_SRC="$PROJECT_DIR/deploy/com.line-bridge.static.plist"
 PLIST_DST="$HOME/Library/LaunchAgents/com.line-bridge.static.plist"
 if [ -f "$PLIST_SRC" ]; then
   mkdir -p "$HOME/Library/LaunchAgents" "$PROJECT_DIR/logs"
