@@ -32,7 +32,8 @@ def check(label, cond):
 print("1) MCP ツール登録")
 tools = asyncio.run(server.mcp.list_tools())
 names = sorted(t.name for t in tools)
-check(f"4ツール登録: {names}", names == ["send_image", "send_stats", "send_text", "send_video"])
+check(f"5ツール登録: {names}",
+      names == ["send_image", "send_images", "send_stats", "send_text", "send_video"])
 
 print("2) 画像処理: 透過PNG → original<=10MB / preview<=1MB")
 tmp = server.BASE_DIR / "_test_input.png"

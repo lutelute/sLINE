@@ -42,6 +42,8 @@ sLINE が LINE にメッセージを送るには、**自分専用の LINE Bot（
 
 [LINE Developers Console](https://developers.line.biz/console/) を開き、作られたプロバイダー → 該当チャネルを選択します。
 
+> 💡 タブ名は画面の言語で変わります。本ガイドは英語UI表記です（日本語UIでは「Messaging API」→ **「Messaging API設定」**、「Basic settings」→ **「チャネル基本設定」**）。
+
 ### 3-1. Channel access token（テキスト・画像・動画の送信に必須）
 
 1. **「Messaging API」タブ**を開く。

@@ -1150,6 +1150,118 @@ def send_video(path: str, caption: str = "") -> str:
     )
 
 
+@mcp.tool
+def send_images(paths: list[str], caption: str = "") -> str:
+    """複数のローカル画像を1つの送信にまとめて自分の LINE に送る（push＝通数を節約）。
+
+    LINE の1 push には最大5吹き出しまで詰められる。caption があれば先頭の1吹き出しを使い、
+    残りに画像を入れる。合計が5を超えると自動的に複数 push に分割する（通数は push 回数分）。
+    壊れている/見つからない画像はスキップし、送れた分だけ送る（スキップ分は結果に表示）。
+
+    Args:
+        paths: 画像の絶対パスのリスト。
+        caption: 先頭に添えるテキスト（任意。最初の push に同梱）。
+    Returns:
+        送信結果の短い説明。
+    """
+    global _last_image_send
+
+    if not paths or not isinstance(paths, list):
+        return "エラー: paths は画像パスのリストで指定してください。"
+
+    # 先に残量を確認（上限なら重い画像処理を省く。最終判定は送信直前の reserve_quota）
+    used, limit = peek_quota()
+    if used >= limit:
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+
+    base = public_base_url()
+    prepared: list[tuple[Path, Path, str, str]] = []  # (original, preview, original_url, preview_url)
+    errors: list[str] = []
+    for p in paths:
+        src = Path(str(p)).expanduser()
+        if not src.is_absolute():
+            src = (Path.cwd() / src).resolve()
+        if not src.exists() or not src.is_file():
+            errors.append(f"{p}（見つからない）")
+            continue
+        token = secrets.token_hex(16)
+        try:
+            original = prepare_original(src, token)
+            preview = prepare_preview(src, token)
+        except Exception:
+            errors.append(f"{p}（画像処理失敗）")
+            continue
+        ou, pu = f"{base}/{original.name}", f"{base}/{preview.name}"
+        if len(ou) > URL_MAX_CHARS or len(pu) > URL_MAX_CHARS:
+            _safe_unlink(original, preview)
+            errors.append(f"{p}（URL長超過）")
+            continue
+        if not (verify_served(original.name) and verify_served(preview.name)):
+            _safe_unlink(original, preview)
+            errors.append(f"{p}（配信不可）")
+            continue
+        prepared.append((original, preview, ou, pu))
+
+    if not prepared:
+        tail = (" — " + " / ".join(errors)) if errors else ""
+        return f"エラー: 送信できる画像がありませんでした{tail}。"
+
+    # メッセージ列を組み立て、5吹き出し/push に分割
+    items: list[dict] = []
+    if caption and caption.strip():
+        items.append({"type": "text", "text": caption[:TEXT_MAX_CHARS]})
+    for _o, _p, ou, pu in prepared:
+        items.append({"type": "image", "originalContentUrl": ou, "previewImageUrl": pu})
+    chunks = [items[i : i + MAX_MESSAGES_PER_PUSH] for i in range(0, len(items), MAX_MESSAGES_PER_PUSH)]
+    needed = len(chunks)
+    all_files = [f for pr in prepared for f in (pr[0], pr[1])]
+
+    # 送信直前に push 数ぶんを予約
+    try:
+        granted, used, limit = reserve_quota(needed)
+    except OSError as e:
+        _safe_unlink(*all_files)
+        return f"エラー: 送信通数の管理に失敗し、安全のため送信を中止しました: {e}"
+    if not granted:
+        _safe_unlink(*all_files)
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通、必要 {needed}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+
+    t0 = time.time()
+    pushes_done = 0
+    try:
+        for ch in chunks:
+            line_push(ch)
+            pushes_done += 1
+    except Exception as e:
+        release_quota(needed - pushes_done)  # 成功した push 分はカウントに残す
+        ep = time.time()
+        log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": "images",
+                   "ok": False, "count": len(prepared), "pushes": pushes_done, "err": str(e)[:300]})
+        # 送信済み分は LINE の取得のため残し、未送信分だけ消す
+        sent_imgs = pushes_done * MAX_MESSAGES_PER_PUSH
+        leftover = [f for pr in prepared[max(0, sent_imgs - (1 if caption.strip() else 0)):] for f in (pr[0], pr[1])]
+        _safe_unlink(*leftover)
+        return f"エラー: 送信に失敗しました（{pushes_done}/{needed} push 成功）: {e}"
+
+    ack = time.time()
+    push_ms = int((ack - t0) * 1000)
+    _last_image_send = ack
+    keep_awake()
+    log_event({"event": "send", "ts": _iso(ack), "epoch": ack, "type": "images", "ok": True,
+               "count": len(prepared), "pushes": needed, "push_ms": push_ms,
+               "used": used, "limit": limit})
+    msg = f"LINE に画像 {len(prepared)} 枚を送信しました（{needed} push / {push_ms}ms）。"
+    if errors:
+        msg += f" ※{len(errors)}枚スキップ: " + " / ".join(errors)
+    return msg + _quota_note(used, limit)
+
+
 def _safe_unlink(*paths: Path) -> None:
     for p in paths:
         try:
