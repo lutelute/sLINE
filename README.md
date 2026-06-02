@@ -64,6 +64,7 @@ git clone <this-repo> sLINE && cd sLINE
 | `smoke_test.py` | 認証情報なしで動く部分の自己テスト |
 | `com.line-bridge.static.plist` | 配信サーバーを常駐させる launchd テンプレート（`setup.sh` が実値を埋めて配置） |
 | `pyproject.toml` | 依存定義（uv 管理） |
+| `docs/SETUP_LINE.md` | LINE Bot 登録の詳細ガイド（初心者向け・画面の場所つき） |
 
 ツール:
 - **`send_text(message)`** — テキストを LINE に送る（長文は自動分割）
@@ -122,6 +123,8 @@ LINE 無料プラン（コミュニケーションプラン）は **200通/月**
 `./setup.sh` で依存・配信サーバー・`.env` の雛形は用意される。残りは LINE 側の設定だ。
 
 ### 1. LINE 側：Bot（Messaging API チャネル）を作る
+
+> 📖 **初めての人は詳細ガイド [docs/SETUP_LINE.md](docs/SETUP_LINE.md) を参照**（公式アカウント作成からトークン取得・友だち追加・userId取得まで、画面の場所つきで丁寧に説明）。以下は要点のみ。
 
 1. [LINE Official Account Manager](https://manager.line.biz/) で公式アカウントを1つ作る（無料）。
 2. 設定 → **Messaging API** を有効化。これで [LINE Developers Console](https://developers.line.biz/console/) に Messaging API チャネルが作られる（プロバイダーは適当に1つ作る）。
