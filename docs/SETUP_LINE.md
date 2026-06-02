@@ -14,6 +14,11 @@ sLINE が LINE にメッセージを送るには、**自分専用の LINE Bot（
 
 取得した値は最終的に `.env` に書きます（対応は各手順に明記）。
 
+> 📷 **実際の画面を見たいときは、LINE公式ドキュメントが画像付き・最新です**（自前スクショより正確で、UI変更にも追従。個人情報の心配もなし）:
+> - [Messaging APIを始めよう](https://developers.line.biz/ja/docs/messaging-api/getting-started/) — 公式アカウント作成・Messaging API有効化（§1〜2）
+> - [ボットを作成する](https://developers.line.biz/ja/docs/messaging-api/building-bot/) — チャネル設定・トークン発行・友だち追加（§3〜4）
+> - [チャネルアクセストークン](https://developers.line.biz/ja/docs/basics/channel-access-token/) — トークンの種類と発行方法（§3）
+
 ---
 
 ## 1. LINE公式アカウントを作る
