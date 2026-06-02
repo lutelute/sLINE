@@ -3,6 +3,10 @@
 Claude Code が生成したテキスト・画像・動画を、**自分の LINE に push 送信**する MCP サーバー。
 「スマホから Claude Code に指示は出せるけど、出来上がった画像や結果が手元で見られない」を解決する。
 
+![sLINE デモ — Claude Code の生成物が自分の LINE に届く](docs/assets/demo.gif)
+
+<sub>※ 上図はイメージです。実際の流れは「ターミナルで Claude に送信を指示 → スマホの LINE に画像が届く」。</sub>
+
 > 状態: テキスト・画像・動画(GIF→mp4)・遅延記録・月間クォータすべて稼働。実測 push受理→LINE取得 約 0.1s（画像）。動画は PC版・スマホ版の LINE で再生確認済み。
 
 ```

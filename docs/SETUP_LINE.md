@@ -14,6 +14,22 @@ sLINE が LINE にメッセージを送るには、**自分専用の LINE Bot（
 
 取得した値は最終的に `.env` に書きます（対応は各手順に明記）。
 
+```mermaid
+flowchart TD
+    classDef env fill:#e8f5e9,stroke:#43a047,color:#1b5e20;
+    A["1. 公式アカウント作成<br/>(manager.line.biz)"] --> B["2. Messaging API を有効化<br/>(Developers Console にチャネル生成)"]
+    B --> C["3-1. アクセストークン発行<br/>(Messaging API タブ)"]
+    B --> D["3-2. Channel secret をコピー<br/>(Basic settings タブ)"]
+    C --> E["4. Bot を友だち追加<br/>(QRコード・必須)"]
+    D --> E
+    E --> F["5. userId を取得<br/>(U で始まる32桁)"]
+    F --> G["6. 自動応答を OFF (推奨)"]
+    C -.->|.env| ENV1["LINE_CHANNEL_ACCESS_TOKEN"]
+    D -.->|.env| ENV2["LINE_CHANNEL_SECRET"]
+    F -.->|.env| ENV3["LINE_USER_ID"]
+    class ENV1,ENV2,ENV3 env;
+```
+
 > 📷 **実際の画面を見たいときは、LINE公式ドキュメントが画像付き・最新です**（自前スクショより正確で、UI変更にも追従。個人情報の心配もなし）:
 > - [Messaging APIを始めよう](https://developers.line.biz/ja/docs/messaging-api/getting-started/) — 公式アカウント作成・Messaging API有効化（§1〜2）
 > - [ボットを作成する](https://developers.line.biz/ja/docs/messaging-api/building-bot/) — チャネル設定・トークン発行・友だち追加（§3〜4）
