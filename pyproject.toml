@@ -1,0 +1,14 @@
+[project]
+name = "line-bridge-mcp"
+version = "0.1.0"
+description = "Claude Code が生成したテキスト/画像/動画を自分の LINE に push する MCP サーバー"
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0",
+    "requests>=2.31",
+    "pillow>=10.0",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false

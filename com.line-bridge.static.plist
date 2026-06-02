@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  画像/動画配信用の静的サーバーを常駐させる launchd LaunchAgent（テンプレート）。
+  Claude Code(=MCP) の起動有無に関係なく Tailscale Funnel の宛先(127.0.0.1:PORT)を
+  生かし続けるため、メディアが「送った直後に取得前に消える」問題を防ぐ。
+
+  __UV_BIN__ と __PROJECT_DIR__ はプレースホルダ。setup.sh が実値に置換して
+  ~/Library/LaunchAgents/com.line-bridge.static.plist に配置する。
+  手動で使う場合は、この2つを自分の環境のパスに置き換えてから設置すること:
+    __UV_BIN__      … `which uv` の出力（例: /Users/you/.local/bin/uv）
+    __PROJECT_DIR__ … このリポジトリの絶対パス
+
+  設置:   launchctl load -w ~/Library/LaunchAgents/com.line-bridge.static.plist
+  停止解除: launchctl unload -w ~/Library/LaunchAgents/com.line-bridge.static.plist
+  状態:   launchctl list | grep line-bridge
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.line-bridge.static</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__UV_BIN__</string>
+        <string>run</string>
+        <string>--directory</string>
+        <string>__PROJECT_DIR__</string>
+        <string>server.py</string>
+        <string>--static-only</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__PROJECT_DIR__/logs/static.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>__PROJECT_DIR__/logs/static.err.log</string>
+</dict>
+</plist>
