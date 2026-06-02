@@ -17,6 +17,7 @@ Claude Code が生成したテキスト/画像/動画を、ユーザー自身の
 - 導入後は `uv run python smoke_test.py` → 実送信で確認。動画を送ったら「すぐスマホで開いて」と伝える。
 
 ### このリポジトリの「コードを改修」するなら
+- ファイル配置は [README.md「提供ツールと構成ファイル」](README.md#提供ツールと構成ファイル)（ツリー）を参照。`server.py` はルート固定（MCP登録・launchd・CI が直接参照する外部契約）。
 - 変更後は必ず `uv run python smoke_test.py`（認証不要・45チェック）。
 - `server.py` を編集したら配信サーバーの常駐を再起動（macOS: `launchctl kickstart -k gui/$(id -u)/com.line-bridge.static`）。
 - **クロスプラットフォームを壊さない**：OS 依存（ファイルロック・スリープ抑制・パス）は分岐で書く。GitHub Actions が macOS/Windows/Linux で smoke_test を検証する。
