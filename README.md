@@ -203,11 +203,11 @@ sLINE/
 ├── deploy/
 │   └── com.line-bridge.static.plist   # launchd 常駐定義（setup.sh が実値を埋めて配置）
 ├── docs/
-│   ├── SETUP_LINE.md    # LINE Bot 登録ガイド（初心者向け・登録フロー図つき）
+│   ├── SETUP_LINE.md    # LINE Bot 登録ガイド（初心者向け・登録フロー図 + アニメ GIF つき）
 │   ├── AI_SETUP.md      # AI に導入を代行させる手順
-│   └── assets/          # README 用デモ GIF とそのソース
+│   └── assets/          # 説明 GIF (demo / setup-flow) とそのソース HTML
 ├── scripts/
-│   ├── capture_demo.py  # README のデモ GIF を再生成
+│   ├── capture_demo.py  # 説明 GIF を再生成（--target demo|setup-flow）
 │   └── capture_guide.py # 登録画面スクショ補助（任意）
 └── .github/workflows/   # CI（macOS / Windows / Linux で smoke_test）
 ```
