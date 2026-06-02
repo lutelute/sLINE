@@ -60,6 +60,19 @@ git clone <this-repo> sLINE; cd sLINE
 
 ---
 
+## AIに導入してもらう
+
+このツールは **AI エージェント（Claude Code など）に読ませて導入を代行させる**使い方を想定しています。AI に出す指示の例と AI が従う手順は **[docs/AI_SETUP.md](docs/AI_SETUP.md)** に、AI が自動で読む道標は **[AGENTS.md](AGENTS.md)** にあります。
+
+例: リポジトリのディレクトリで Claude Code を起動し、こう頼む 👇
+```
+このリポジトリ（sLINE）を私の環境にセットアップして。docs/AI_SETUP.md に従って、
+できる作業は進めて。LINE管理画面の操作など私がやるべきことは具体的に指示して。
+最後に send_text と send_image でテスト送信して、LINEに届くか確認させて。
+```
+
+---
+
 ## 構成ファイル
 
 | ファイル | 役割 |
