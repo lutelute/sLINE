@@ -49,6 +49,14 @@ from PIL import Image, ImageOps
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+# Windows 等で stdout/stderr が非UTF-8（cp1252等）だと、日本語ログや JSON-RPC 応答で
+# UnicodeEncodeError になるため UTF-8 に統一する（stdout=JSON-RPC, stderr=ログ）。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # 設定
 # ---------------------------------------------------------------------------
