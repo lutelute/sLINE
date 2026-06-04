@@ -1,0 +1,17 @@
+# 改行コードをファイル種別ごとに固定する。
+# 目的: Git for Windows の既定 core.autocrlf=true でクローンしても、シェルスクリプトが
+# CRLF 化して bash が `\r` で落ちる事故を防ぐ（CI は autocrlf=false なので顕在化しない）。
+
+# 既定: テキストとして扱い、リポジトリ内は LF に正規化
+* text=auto eol=lf
+
+# LF 必須（bash / Python は CR が混ざると壊れる・誤動作する）
+*.sh    text eol=lf
+*.py    text eol=lf
+
+# PowerShell は Windows ネイティブの CRLF を維持（先頭の UTF-8 BOM は内容なので保持される）
+*.ps1   text eol=crlf
+
+# バイナリ（改行正規化・差分表示を無効化）
+*.gif   binary
+*.png   binary

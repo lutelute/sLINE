@@ -114,7 +114,7 @@ check("非tokenは配信確認NG", not server.verify_served("nope.txt"))
 
 
 def fetch_count():
-    return server.LOG_FILE.read_text().count('"event": "fetch"') if server.LOG_FILE.exists() else 0
+    return server.LOG_FILE.read_text(encoding="utf-8").count('"event": "fetch"') if server.LOG_FILE.exists() else 0
 
 
 print("8) ログ/遅延計測")
@@ -174,7 +174,7 @@ server.release_quota(99)  # 下限0でクランプ
 u5, _ = server.peek_quota()
 check(f"戻し過ぎは0でクランプ: {u5}", u5 == 0)
 # 月替わりリセット: ファイルを過去の月に書き換える
-server.USAGE_FILE.write_text(json.dumps({"month": "2000-01", "count": 99}))
+server.USAGE_FILE.write_text(json.dumps({"month": "2000-01", "count": 99}), encoding="utf-8")
 u6, _ = server.peek_quota()
 check(f"先月のカウントは0にリセット: {u6}", u6 == 0)
 # 不正な LINE_MONTHLY_LIMIT は既定値にフォールバック

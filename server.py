@@ -783,7 +783,7 @@ def video_duration_seconds(src: Path) -> float | None:
         out = subprocess.run(
             [_ff_bin("ffprobe"), "-v", "error", "-show_entries", "format=duration",
              "-of", "default=nw=1:nk=1", str(src)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
         )
         return float(out.stdout.strip())
     except (subprocess.SubprocessError, ValueError, OSError):
@@ -796,7 +796,7 @@ def _has_audio_stream(src: Path) -> bool:
         out = subprocess.run(
             [_ff_bin("ffprobe"), "-v", "error", "-select_streams", "a",
              "-show_entries", "stream=index", "-of", "csv=p=0", str(src)],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
         )
         return bool(out.stdout.strip())
     except (subprocess.SubprocessError, OSError):
@@ -835,7 +835,7 @@ def prepare_video(src: Path, token: str) -> Path:
         str(dst),
     ]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
     except subprocess.TimeoutExpired as e:
         dst.unlink(missing_ok=True)
         raise RuntimeError("動画の変換がタイムアウトしました（300秒）。") from e
@@ -856,7 +856,7 @@ def prepare_video_preview(src: Path, token: str) -> Path:
     frame = public_dir() / f"{token}_frame.png"
     cmd = [_ff_bin("ffmpeg"), "-y", "-i", str(src), "-frames:v", "1", str(frame)]
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
     except (subprocess.SubprocessError, OSError) as e:
         raise RuntimeError(f"動画のサムネイル抽出に失敗しました: {e}") from e
     if proc.returncode != 0 or not frame.exists():
