@@ -1,4 +1,4 @@
-# sLINE (LINE ブリッジ MCP) セットアップスクリプト（Windows / PowerShell）。
+﻿# sLINE (LINE ブリッジ MCP) セットアップスクリプト（Windows / PowerShell）。
 # 依存チェック → uv sync → .env 用意 → 配信サーバーをタスクスケジューラに登録 → 案内。
 # 冪等（何度実行しても安全）。トークン等の秘密は対話で聞かず、.env に手で入れてもらう。
 # 実行: PowerShell で  ./setup.ps1   （タスク登録に管理者権限が必要な場合あり）

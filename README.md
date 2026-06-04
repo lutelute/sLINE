@@ -154,6 +154,11 @@ claude mcp add --scope user line-bridge -- \
 claude mcp list   # 登録確認
 ```
 
+> **Windows (PowerShell) の場合**: PowerShell 5.1 は `--` 区切りをシェルが消費してしまい `unknown option '--directory'` になる。`cmd /c` でくるんで回避する:
+> ```powershell
+> cmd /c "claude.cmd mcp add --scope user line-bridge -- uv run --directory `"$PWD`" server.py"
+> ```
+
 ### 7. 動作確認
 
 ```bash
