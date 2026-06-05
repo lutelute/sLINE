@@ -78,8 +78,24 @@ URL_MAX_CHARS = 2000                    # originalContentUrl/previewImageUrl の
 VIDEO_MAX_BYTES = 200 * 1000 * 1000     # originalContentUrl(mp4) は最大 200 MB
 VIDEO_MAX_SECONDS = 60                  # 動画の長さは最大 1 分
 
-# 公開ディレクトリのファイルを掃除する保持時間（秒）。LINE の取得は数秒で済むので短くてよい。
-RETENTION_SECONDS = 60 * 60             # 1 時間
+# 公開ディレクトリのファイルを掃除する保持時間（秒）。LINE 自身の取得は通常数秒で済むが、
+# 受信端末（スマホ）が一時的にオフライン／制限ネットワーク（eduroam 等のクライアント分離）で
+# 取りに来られないと、後から再接続したときに画像が消えていて 404＝空表示になる。そうした環境
+# 向けに env LINE_RETENTION_SECONDS で延長できる（既定 1 時間）。
+def _int_env(name: str, default: int) -> int:
+    """環境変数を正の整数として読む。未設定・不正なら default を返す。"""
+    raw = os.environ.get(name)
+    if raw and raw.strip():
+        try:
+            n = int(raw.strip())
+            if n > 0:
+                return n
+        except ValueError:
+            pass
+    return default
+
+
+RETENTION_SECONDS = _int_env("LINE_RETENTION_SECONDS", 60 * 60)   # 既定 1 時間
 CLEANUP_INTERVAL = 600                  # 掃除スレッドの実行間隔（秒）
 
 # 画像送信直後にプロセスが落ちると LINE の取得前に配信が止まるため、MCP プロセス内で

@@ -296,6 +296,7 @@ LINE 無料プラン（コミュニケーションプラン）は **200通/月**
 | 症状 | 対処 |
 |---|---|
 | 画像が届かない/サムネだけ出ない | `tailscale funnel status` で公開を確認。`curl https://<your-host>.ts.net/` が静的サーバーに届くか。 |
+| **送信は成功なのにスマホで画像が出ない（空表示）** | LINE の image は**受信端末（スマホ）が公開URLから直接取得**する。送信側（push／Funnel／配信）がすべて正常でも、**スマホのネットワークが Funnel URL に到達できない**と空になる。`send_stats` の fetch ログに `Line/… iPhone` の取得が無ければこれ。診断: スマホの Safari で画像URL（`https://<your-host>.ts.net/<token>.png`）を直接開く→出なければ受信側ネットワークが原因。回避: **スマホを Wi-Fi 切→モバイル通信**で受ける／大学Wi-Fi（eduroam 等のクライアント分離）を避ける。後から取りに来る端末向けに `.env` の `LINE_RETENTION_SECONDS`（既定 3600 秒＝1時間）を延ばすと猶予が伸びる。 |
 | `LINE API エラー 401` | `LINE_CHANNEL_ACCESS_TOKEN` が誤り or 失効。再発行。 |
 | `LINE API エラー 400 ... invalid to` | `LINE_USER_ID` が誤り（@ID ではなく U... の userId か確認）。 |
 | `送信中止: 今月の送信が安全上限に…` | ローカルの安全上限（既定180/月）に到達。翌月リセット。急ぐなら `.env` の `LINE_MONTHLY_LIMIT` を上げる（実上限200まで）。 |
