@@ -30,4 +30,6 @@ Claude Code が生成したテキスト/画像/動画を、ユーザー自身の
 - `send_images(paths, caption="")` — 複数画像を1送信にまとめる
 - `send_video(path, caption="")` — GIF/動画を mp4 にして送信（自動再生）
 - `send_file(path, caption="")` — PDF 等の任意ファイルを公開URL化し「タップで開けるリンク」として送信（LINE はボットのファイル添付に非対応のため）
+- `send_location(latitude, longitude, title="", address="")` — 地図ピンを送信（push のみ）
+- `send_buttons(text, buttons, title="")` — 本文＋URLボタン（最大4・https必須）のアクション付き通知（push のみ）
 - `send_stats(limit=20)` — 今月の使用通数と送信記録・遅延

@@ -39,8 +39,9 @@ def check(label, cond):
 print("1) MCP ツール登録")
 tools = asyncio.run(server.mcp.list_tools())
 names = sorted(t.name for t in tools)
-check(f"6ツール登録: {names}",
-      names == ["send_file", "send_image", "send_images", "send_stats", "send_text", "send_video"])
+check(f"8ツール登録: {names}",
+      names == ["send_buttons", "send_file", "send_image", "send_images",
+                "send_location", "send_stats", "send_text", "send_video"])
 
 print("2) 画像処理: 透過PNG → original<=10MB / preview<=1MB")
 tmp = server.BASE_DIR / "_test_input.png"
@@ -135,6 +136,17 @@ st_html, _, _ = get(f"/{bad.name}")
 check(f"html はファイルがあっても 404（許可外）: {st_html}", st_html == 404)
 for p in (doc, bad):
     p.unlink(missing_ok=True)
+
+print("7c) send_location / send_buttons: 入力検証（push前に弾く＝認証不要）")
+check("location 範囲外は弾く", server.send_location(200, 0).startswith("エラー"))
+check("location 非数値は弾く", server.send_location("x", 0).startswith("エラー"))
+check("buttons 空リストは弾く", server.send_buttons("hi", []).startswith("エラー"))
+check("buttons 非httpsは弾く",
+      server.send_buttons("hi", [{"label": "a", "url": "http://x"}]).startswith("エラー"))
+check("buttons 5個超は弾く",
+      server.send_buttons("hi", [{"label": "a", "url": "https://x"}] * 5).startswith("エラー"))
+check("buttons label/url 欠落は弾く",
+      server.send_buttons("hi", [{"label": "a"}]).startswith("エラー"))
 
 
 def fetch_count():

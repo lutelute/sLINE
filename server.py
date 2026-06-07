@@ -1489,6 +1489,106 @@ def send_file(path: str, caption: str = "") -> str:
     )
 
 
+def _push_simple(message: dict, kind: str, summary: str) -> str:
+    """メディア配信を伴わない単一メッセージを 1 通送る共通処理（quota/ログ込み）。
+
+    send_location / send_buttons など push だけで完結する型のための薄い土台。
+    画像/動画/ファイルのような公開ディレクトリ配信は伴わない。
+    """
+    used, limit = peek_quota()
+    if used >= limit:
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+    try:
+        granted, used, limit = reserve_quota(1)
+    except OSError as e:
+        return f"エラー: 送信通数の管理に失敗し、安全のため送信を中止しました: {e}"
+    if not granted:
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+    t0 = time.time()
+    try:
+        line_push([message])
+    except Exception as e:
+        release_quota(1)
+        ep = time.time()
+        log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind,
+                   "ok": False, "err": str(e)[:300]})
+        return f"エラー: LINE への送信に失敗しました: {e}"
+    ep = time.time()
+    push_ms = int((ep - t0) * 1000)
+    log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind, "ok": True,
+               "push_ms": push_ms, "used": used, "limit": limit})
+    return f"LINE に{summary}を送信しました（push {push_ms}ms）。" + _quota_note(used, limit)
+
+
+@mcp.tool
+def send_location(latitude: float, longitude: float, title: str = "", address: str = "") -> str:
+    """位置情報（地図ピン）を自分の LINE に送る。
+
+    Args:
+        latitude: 緯度（-90〜90）。
+        longitude: 経度（-180〜180）。
+        title: 地点名（任意・最大100文字。未指定なら 'Location'）。
+        address: 住所などの補足（任意・最大100文字）。
+    Returns:
+        送信結果の短い説明。
+    """
+    try:
+        lat, lng = float(latitude), float(longitude)
+    except (TypeError, ValueError):
+        return "エラー: latitude/longitude は数値で指定してください。"
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
+        return f"エラー: 座標が範囲外です（lat {lat}, lng {lng}）。"
+    msg = {
+        "type": "location",
+        "title": (title.strip() or "Location")[:100],
+        "address": (address.strip() or "—")[:100],
+        "latitude": lat,
+        "longitude": lng,
+    }
+    return _push_simple(msg, kind="location", summary=f"位置情報 📍{msg['title']}")
+
+
+@mcp.tool
+def send_buttons(text: str, buttons: list[dict], title: str = "") -> str:
+    """本文＋URLボタン（最大4）のカードを送る（処理完了→「PRを開く」等のアクション付き通知に）。
+
+    Args:
+        text: 本文。title 無しで最大160文字 / title ありで最大60文字（超過は切り詰め）。
+        buttons: [{"label": "PRを開く", "url": "https://..."}] のリスト（1〜4件、url は https 必須）。
+        title: 見出し（任意・最大40文字）。
+    Returns:
+        送信結果の短い説明。
+    """
+    if not text or not text.strip():
+        return "エラー: text が空です。"
+    if not isinstance(buttons, list) or not buttons:
+        return "エラー: buttons に最低1件 {'label','url'} を指定してください。"
+    if len(buttons) > 4:
+        return "エラー: ボタンは最大4件です。"
+    actions = []
+    for b in buttons:
+        label = str((b or {}).get("label", "")).strip()
+        url = str((b or {}).get("url", "")).strip()
+        if not label or not url:
+            return "エラー: 各ボタンに label と url が必要です。"
+        if not url.startswith("https://"):
+            return f"エラー: ボタンの url は https:// 必須です（{url!r}）。"
+        actions.append({"type": "uri", "label": label[:20], "uri": url})
+    title_s = title.strip()[:40]
+    body = text.strip()[: (60 if title_s else 160)]
+    template = {"type": "buttons", "text": body, "actions": actions}
+    if title_s:
+        template["title"] = title_s
+    msg = {"type": "template", "altText": (title_s or body)[:400], "template": template}
+    return _push_simple(msg, kind="buttons", summary=f"ボタン付きメッセージ（{len(actions)}個）")
+
+
 @mcp.tool
 def send_stats(limit: int = 20) -> str:
     """最近の LINE 送信の記録と今月の使用通数を返す（管理・遅延確認用）。
