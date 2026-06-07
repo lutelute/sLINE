@@ -39,8 +39,8 @@ def check(label, cond):
 print("1) MCP ツール登録")
 tools = asyncio.run(server.mcp.list_tools())
 names = sorted(t.name for t in tools)
-check(f"5ツール登録: {names}",
-      names == ["send_image", "send_images", "send_stats", "send_text", "send_video"])
+check(f"6ツール登録: {names}",
+      names == ["send_file", "send_image", "send_images", "send_stats", "send_text", "send_video"])
 
 print("2) 画像処理: 透過PNG → original<=10MB / preview<=1MB")
 tmp = server.BASE_DIR / "_test_input.png"
@@ -111,6 +111,30 @@ check(f"トラバーサルは 404: {st_trav}", st_trav == 404)
 print("7) verify_served")
 check("実在tokenファイルは配信確認OK", server.verify_served(prev.name))
 check("非tokenは配信確認NG", not server.verify_served("nope.txt"))
+
+print("7b) send_file: 任意ファイルの配信許可/拒否・サニタイズ・実配信")
+rxf = server.TOKEN_FILE_RE
+tkf = "b" * 32
+check("配信許可: <token>-report.pdf", bool(rxf.match(f"/{tkf}-report.pdf")))
+check("配信許可: <token>-my.data.csv", bool(rxf.match(f"/{tkf}-my.data.csv")))
+check("配信拒否: <token>.pdf（dash無し直付けは不可）", not rxf.match(f"/{tkf}.pdf"))
+check("配信拒否: html（スクリプト実行型は除外）", not rxf.match(f"/{tkf}-x.html"))
+check("配信拒否: exe（許可外拡張子）", not rxf.match(f"/{tkf}-x.exe"))
+check("配信拒否: 非token名 /evil.pdf", not rxf.match("/evil.pdf"))
+check("_safe_stem 記号/空白→_", server._safe_stem("report v1 (final)") == "report_v1_final")
+check("_safe_stem 日本語→file", server._safe_stem("実験結果") == "file")
+doc = server.public_dir() / f"{tkf}-doc.pdf"
+doc.write_bytes(b"%PDF-1.4\n% smoke test pdf\n")
+st_pdf, ct_pdf, body_pdf = get(f"/{doc.name}")
+check(f"pdf を application/pdf で配信: {st_pdf} {ct_pdf}",
+      st_pdf == 200 and ct_pdf == "application/pdf" and len(body_pdf) == doc.stat().st_size)
+check("配信確認: pdf token OK", server.verify_served(doc.name))
+bad = server.public_dir() / f"{tkf}-x.html"
+bad.write_bytes(b"<script>alert(1)</script>")
+st_html, _, _ = get(f"/{bad.name}")
+check(f"html はファイルがあっても 404（許可外）: {st_html}", st_html == 404)
+for p in (doc, bad):
+    p.unlink(missing_ok=True)
 
 
 def fetch_count():

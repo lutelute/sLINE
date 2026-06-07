@@ -221,7 +221,7 @@ sLINE/
 
 | ファイル | 役割 |
 |---|---|
-| `server.py` | MCP 本体。`send_text` / `send_image` / `send_video` / `send_stats` ツール + メディア配信用の静的サーバー内蔵 |
+| `server.py` | MCP 本体。`send_text` / `send_image` / `send_images` / `send_video` / `send_file` / `send_stats` ツール + メディア配信用の静的サーバー内蔵 |
 | `setup.sh` | セットアップ自動化（依存チェック・`uv sync`・`.env`用意・launchd登録） |
 | `get_user_id.py` | 自分の LINE userId を Webhook で取得する一度きりのヘルパー |
 | `.env.example` | 設定テンプレート（→ `.env` にコピーして使う） |
@@ -234,6 +234,7 @@ sLINE/
 - **`send_text(message)`** — テキストを LINE に送る（長文は自動分割）
 - **`send_image(path, caption="")`** — ローカル画像を公開 URL 化して LINE に送る（PNG/JPEG 以外や 10MB 超は自動変換・縮小、プレビューも自動生成。※アニメGIFは静止画になる→動かすなら `send_video`）
 - **`send_video(path, caption="")`** — GIF/動画を mp4 に変換して LINE に送る（トークで自動再生。最大 1 分・200MB、preview 自動生成、**ffmpeg 必須**。H.264 baseline + 16の倍数解像度 + 無音音声トラックで生成し、スマホ/PC での再生互換を確保）
+- **`send_file(path, caption="")`** — PDF 等の任意ファイルを「タップで開けるリンク」として送る（LINE はボットからのファイル添付に非対応のため、Funnel で公開 URL 化してテキストで送る）。対応: `pdf/txt/md/csv/tsv/json/log/rtf/zip/gz/tar/tgz/7z/doc(x)/xls(x)/ppt(x)`、上限既定 100MB（`LINE_FILE_MAX_BYTES`）。スクリプト実行され得る型（html/svg/js 等）は公開配信のため非対応。画像/動画は `send_image`/`send_video` を案内。
 - **`send_stats(limit=20)`** — 今月の使用通数（無料枠の安全上限つき）と、最近の送信記録・遅延を返す（下記参照）
 
 ---
