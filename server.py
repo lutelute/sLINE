@@ -966,8 +966,60 @@ def _chunk_text(text: str) -> list[dict]:
     ]
 
 
+def _safe_unlink(*paths: Path) -> None:
+    """公開ディレクトリのファイルを安全に削除（存在しなくても無視）。"""
+    for p in paths:
+        try:
+            p.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _safe_stem(stem: str) -> str:
+    """ファイル名（拡張子除く）を URL/配信に安全な ASCII へ。非対応文字は _、空なら 'file'。"""
+    s = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._-")
+    return s[:80] or "file"
+
+
+def _push_simple(message: dict, kind: str, summary: str) -> str:
+    """メディア配信を伴わない単一メッセージを 1 通送る共通処理（quota/ログ込み）。
+
+    send_location / send_buttons など push だけで完結する型のための薄い土台。
+    画像/動画/ファイルのような公開ディレクトリ配信は伴わない。
+    """
+    used, limit = peek_quota()
+    if used >= limit:
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+    try:
+        granted, used, limit = reserve_quota(1)
+    except OSError as e:
+        return f"エラー: 送信通数の管理に失敗し、安全のため送信を中止しました: {e}"
+    if not granted:
+        return (
+            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
+            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
+        )
+    t0 = time.time()
+    try:
+        line_push([message])
+    except Exception as e:
+        release_quota(1)
+        ep = time.time()
+        log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind,
+                   "ok": False, "err": str(e)[:300]})
+        return f"エラー: LINE への送信に失敗しました: {e}"
+    ep = time.time()
+    push_ms = int((ep - t0) * 1000)
+    log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind, "ok": True,
+               "push_ms": push_ms, "used": used, "limit": limit})
+    return f"LINE に{summary}を送信しました（push {push_ms}ms）。" + _quota_note(used, limit)
+
+
 # ---------------------------------------------------------------------------
-# MCP ツール定義
+# MCP ツール定義（送信系 8 ツール + 統計）
 # ---------------------------------------------------------------------------
 
 from fastmcp import FastMCP  # noqa: E402
@@ -1361,20 +1413,6 @@ def send_images(paths: list[str], caption: str = "") -> str:
     return msg + _quota_note(used, limit)
 
 
-def _safe_unlink(*paths: Path) -> None:
-    for p in paths:
-        try:
-            p.unlink(missing_ok=True)
-        except OSError:
-            pass
-
-
-def _safe_stem(stem: str) -> str:
-    """ファイル名（拡張子除く）を URL/配信に安全な ASCII へ。非対応文字は _、空なら 'file'。"""
-    s = re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("._-")
-    return s[:80] or "file"
-
-
 @mcp.tool
 def send_file(path: str, caption: str = "") -> str:
     """PDF 等の任意ファイルを「タップで開けるリンク」として自分の LINE に送る。
@@ -1487,43 +1525,6 @@ def send_file(path: str, caption: str = "") -> str:
         f"[{src.name} / {size // 1024}KB / push {push_ms}ms]"
         + _quota_note(used, limit)
     )
-
-
-def _push_simple(message: dict, kind: str, summary: str) -> str:
-    """メディア配信を伴わない単一メッセージを 1 通送る共通処理（quota/ログ込み）。
-
-    send_location / send_buttons など push だけで完結する型のための薄い土台。
-    画像/動画/ファイルのような公開ディレクトリ配信は伴わない。
-    """
-    used, limit = peek_quota()
-    if used >= limit:
-        return (
-            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
-            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
-        )
-    try:
-        granted, used, limit = reserve_quota(1)
-    except OSError as e:
-        return f"エラー: 送信通数の管理に失敗し、安全のため送信を中止しました: {e}"
-    if not granted:
-        return (
-            f"送信中止: 今月の送信が安全上限に達しています（{used}/{limit}通）。"
-            f"無料枠（{LINE_FREE_TIER_LIMIT}通/月）を使い切らないための制限です。翌月にリセットされます。"
-        )
-    t0 = time.time()
-    try:
-        line_push([message])
-    except Exception as e:
-        release_quota(1)
-        ep = time.time()
-        log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind,
-                   "ok": False, "err": str(e)[:300]})
-        return f"エラー: LINE への送信に失敗しました: {e}"
-    ep = time.time()
-    push_ms = int((ep - t0) * 1000)
-    log_event({"event": "send", "ts": _iso(ep), "epoch": ep, "type": kind, "ok": True,
-               "push_ms": push_ms, "used": used, "limit": limit})
-    return f"LINE に{summary}を送信しました（push {push_ms}ms）。" + _quota_note(used, limit)
 
 
 @mcp.tool
